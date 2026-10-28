@@ -6,6 +6,7 @@ import { PublicNavbar } from './components/PublicNavbar.jsx';
 import { Navbar } from './components/Navbar.jsx';
 import LandingPage from './pages/LandingPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
+import RegisterPage from './pages/RegisterPage.jsx';
 
 /** Give every unmatched destination a real, accessible route back to discovery. */
 function NotFound() {
@@ -33,6 +34,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<LandingPage key={location.key} session={session} />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </div>
