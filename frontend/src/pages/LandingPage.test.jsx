@@ -97,22 +97,43 @@ it('never writes or removes data during StrictMode mount and rerender', () => {
   expect(write).not.toHaveBeenCalled();
   expect(remove).not.toHaveBeenCalled();
 });
-it.each(['/login', '/register', '/blogs', '/blog/p1', '/write', '/edit/p1', '/admin', '/users', '/unknown'])('renders a real unmatched view and working back link for %s', async (path) => {
+it('renders a real unmatched view and working back link for /unknown', async () => {
   const user = userEvent.setup();
-  mount(<App />, path);
+  mount(<App />, '/unknown');
   expect(screen.getByRole('heading', { name: 'Page not found' })).toBeInTheDocument();
   await user.click(screen.getByRole('link', { name: 'Back to WriteSpace' }));
   expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Your thoughts. Your space. Beautifully simple.');
 });
-it('follows actual signup, reading and preview links into unmatched routes', async () => {
+it('follows actual signup to registration and guest reading and preview links to login', async () => {
   const user = userEvent.setup();
   savePosts([post]);
   mount(<App />);
-  for (const label of ['Get Started Free', 'Start Reading', post.title]) {
+  for (const [label, heading] of [['Get Started Free', 'Create an account'], ['Start Reading', 'Welcome back'], [post.title, 'Welcome back']]) {
     await user.click(screen.getByRole('link', { name: label }));
-    expect(screen.getByRole('heading', { name: 'Page not found' })).toBeInTheDocument();
-    await user.click(screen.getByRole('link', { name: 'Back to WriteSpace' }));
+    expect(screen.getByRole('heading', { name: heading })).toBeInTheDocument();
+    await user.click(screen.getByRole('link', { name: 'WriteSpace', exact: true }));
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Your thoughts. Your space. Beautifully simple.');
   }
+});
+it('follows authenticated Home navigation, reading and preview links with the real home brand link', async () => {
+  const user = userEvent.setup();
+  setSession(session);
+  savePosts([post]);
+  mount(<App />);
+  expect(screen.getByRole('link', { name: 'Blogs', exact: true })).toHaveAttribute('href', '/blogs');
+  expect(screen.getByRole('link', { name: 'Write', exact: true })).toHaveAttribute('href', '/write');
+  expect(screen.queryByRole('link', { name: 'Dashboard' })).not.toBeInTheDocument();
+  for (const label of ['Blogs', 'Start Reading']) {
+    await user.click(screen.getByRole('link', { name: label, exact: true }));
+    expect(screen.getByRole('heading', { name: 'Blogs', level: 1 })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Write a post' })).toHaveAttribute('href', '/write');
+    await user.click(screen.getByRole('link', { name: 'WriteSpace', exact: true }));
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Your thoughts. Your space. Beautifully simple.');
+  }
+  await user.click(screen.getByRole('link', { name: post.title }));
+  expect(screen.getByRole('heading', { name: post.title, level: 1 })).toBeInTheDocument();
+  await user.click(screen.getByRole('link', { name: 'WriteSpace', exact: true }));
+  expect(screen.getByRole('link', { name: post.title })).toBeInTheDocument();
 });
 it('re-reads changed, cleared and malformed sessions and posts on route changes', async () => {
   const user = userEvent.setup();
@@ -120,22 +141,41 @@ it('re-reads changed, cleared and malformed sessions and posts on route changes'
   await user.click(screen.getByRole('link', { name: 'Login' }));
   setSession(session);
   savePosts([post]);
-  await user.click(screen.getByRole('link', { name: 'Back to WriteSpace' }));
+  await user.click(screen.getByRole('link', { name: 'WriteSpace', exact: true }));
   expect(screen.getByText('Mira', { selector: 'span' })).toBeInTheDocument();
-  expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveAttribute('href', '/blogs');
+  expect(screen.getByRole('link', { name: 'Blogs', exact: true })).toHaveAttribute('href', '/blogs');
+  expect(screen.getByRole('link', { name: 'Write', exact: true })).toHaveAttribute('href', '/write');
+  expect(screen.queryByRole('link', { name: 'Dashboard' })).not.toBeInTheDocument();
   expect(screen.getByRole('link', { name: 'Start Reading' })).toHaveAttribute('href', '/blogs');
   expect(screen.getByRole('link', { name: post.title })).toBeInTheDocument();
-  await user.click(screen.getByRole('link', { name: 'Dashboard' }));
+  await user.click(screen.getByRole('link', { name: 'Blogs', exact: true }));
+  expect(screen.getByRole('heading', { name: 'Blogs', level: 1 })).toBeInTheDocument();
   setSession({ ...session, role: 'admin', displayName: 'Admin Mira' });
-  await user.click(screen.getByRole('link', { name: 'Back to WriteSpace' }));
+  const changedPost = { ...post, title: 'Changed note' };
+  savePosts([changedPost]);
+  await user.click(screen.getByRole('link', { name: 'WriteSpace', exact: true }));
+  expect(screen.getByText('Admin Mira', { selector: 'span' })).toBeInTheDocument();
   expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveAttribute('href', '/admin');
-  await user.click(screen.getByRole('link', { name: 'Dashboard' }));
+  expect(screen.getByRole('link', { name: changedPost.title })).toBeInTheDocument();
+  expect(screen.queryByRole('link', { name: post.title })).not.toBeInTheDocument();
+  await user.click(screen.getByRole('link', { name: 'Blogs', exact: true }));
   clearSession();
-  await user.click(screen.getByRole('link', { name: 'Back to WriteSpace' }));
+  savePosts([]);
+  await user.click(screen.getByRole('link', { name: 'WriteSpace', exact: true }));
   expect(screen.getByRole('link', { name: 'Login' })).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Start Reading' })).toHaveAttribute('href', '/login');
+  expect(screen.getByText('No posts yet — check back soon!')).toBeInTheDocument();
+  expect(screen.queryByRole('link', { name: changedPost.title })).not.toBeInTheDocument();
   await user.click(screen.getByRole('link', { name: 'Login' }));
   localStorage.setItem('writespace_session', '{');
-  await user.click(screen.getByRole('link', { name: 'Back to WriteSpace' }));
+  localStorage.setItem('writespace_posts', '{');
+  await user.click(screen.getByRole('link', { name: 'WriteSpace', exact: true }));
   expect(screen.queryByRole('link', { name: 'Dashboard' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('link', { name: 'Blogs', exact: true })).not.toBeInTheDocument();
+  expect(screen.queryByRole('link', { name: 'Write', exact: true })).not.toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Login' })).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Start Reading' })).toHaveAttribute('href', '/login');
+  expect(screen.getByText('No posts yet — check back soon!')).toBeInTheDocument();
   expect(localStorage.getItem('writespace_session')).toBe('{');
+  expect(localStorage.getItem('writespace_posts')).toBe('{');
 });

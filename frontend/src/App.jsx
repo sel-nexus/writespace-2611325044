@@ -7,6 +7,9 @@ import { Navbar } from './components/Navbar.jsx';
 import LandingPage from './pages/LandingPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
+import { ProtectedRoute } from './components/ProtectedRoute.jsx';
+import Home from './pages/Home.jsx';
+import ReadBlog from './pages/ReadBlog.jsx';
 
 /** Give every unmatched destination a real, accessible route back to discovery. */
 function NotFound() {
@@ -35,6 +38,16 @@ export default function App() {
         <Route path="/" element={<LandingPage key={location.key} session={session} />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/blogs" element={
+          <ProtectedRoute>
+            <Home />
+          </ProtectedRoute>
+        } />
+        <Route path="/blog/:id" element={
+          <ProtectedRoute>
+            <ReadBlog />
+          </ProtectedRoute>
+        } />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </div>
