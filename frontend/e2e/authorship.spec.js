@@ -50,6 +50,70 @@ for (const path of ['/write', '/edit/missing']) {
   });
 }
 
+test('non-owner initial edit entry for an existing post redirects to blogs without editor content or storage changes', async ({ page }) => {
+  const owner = {
+    id: 'owner', displayName: 'Owner Writer', username: 'owner', password: 'demo-only',
+    role: 'user', createdAt: '2025-01-01T00:00:00.000Z',
+  };
+  const visitor = { ...owner, id: 'visitor', displayName: 'Other Writer', username: 'visitor' };
+  const post = {
+    id: 'existing-target', title: 'Owner-only draft', content: 'Existing saved body.',
+    authorId: owner.id, authorName: owner.displayName, createdAt: owner.createdAt,
+  };
+  const storage = {
+    writespace_users: JSON.stringify([owner, visitor]),
+    writespace_posts: JSON.stringify([post]),
+    writespace_session: JSON.stringify({
+      userId: visitor.id, username: visitor.username, displayName: visitor.displayName, role: visitor.role,
+    }),
+    unrelated: 'keep this value',
+  };
+  await page.addInitScript((entries) => {
+    for (const [key, value] of Object.entries(entries)) localStorage.setItem(key, value);
+  }, storage);
+  await page.goto('/edit/existing-target');
+  await expect(page).toHaveURL(/\/blogs$/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Blogs');
+  await expect(page.getByRole('heading', { name: post.title, exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Other Writer account', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Edit post', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Post not found', exact: true })).toHaveCount(0);
+  await expect(page.getByLabel('Title', { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel('Content', { exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Save post', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: `Edit ${post.title}`, exact: true })).toHaveCount(0);
+  expect(await page.evaluate(() => Object.fromEntries(Object.entries(localStorage)))).toEqual(storage);
+});
+
+test('list-card Edit selects the existing owned post and Cancel preserves all saved posts', async ({ page }) => {
+  await page.goto('/');
+  await register(page, 'Card Writer', 'card-writer');
+  await write(page, 'Selected card', 'Selected existing body.');
+  await write(page, 'Unrelated card', 'Keep this unrelated body.');
+  const original = await posts(page);
+  const selected = original[0];
+  const storage = await page.evaluate(() => Object.fromEntries(Object.entries(localStorage)));
+  await page.getByRole('link', { name: 'Back to blogs', exact: true }).click();
+  await expect(page).toHaveURL(/\/blogs$/);
+  const card = page.getByRole('article').filter({
+    has: page.getByRole('heading', { name: selected.title, exact: true }),
+  });
+  await card.getByRole('link', { name: `Edit ${selected.title}`, exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/edit/${selected.id}$`));
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Edit post');
+  await expect(page.getByLabel('Title', { exact: true })).toHaveValue(selected.title);
+  await expect(page.getByLabel('Content', { exact: true })).toHaveValue(selected.content);
+  await page.getByLabel('Title', { exact: true }).fill('Unsaved card revision');
+  await page.getByLabel('Content', { exact: true }).fill('Unsaved replacement body.');
+  await page.getByRole('link', { name: 'Cancel', exact: true }).click();
+  await expect(page).toHaveURL(/\/blogs$/);
+  await expect(page.getByRole('heading', { name: selected.title, exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Unrelated card', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Unsaved card revision', exact: true })).toHaveCount(0);
+  expect(await posts(page)).toEqual(original);
+  expect(await page.evaluate(() => Object.fromEntries(Object.entries(localStorage)))).toEqual(storage);
+});
+
 test('registers, writes, reloads, reads, edits and confirms deletion while retaining unrelated posts', async ({ page }) => {
   await page.goto('/');
   await register(page, 'Mira Writer', 'mira');

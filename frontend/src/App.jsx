@@ -21,7 +21,10 @@ function NotFound() {
       <p className="font-medium text-indigo-700">404</p>
       <h1 className="mt-4 font-display text-4xl font-bold">Page not found</h1>
       <p className="mt-5 text-slate-600">This address does not have a page. Return to WriteSpace to explore.</p>
-      <Link to="/" className="mt-8 inline-block rounded-full bg-indigo-600 px-6 py-3 font-medium text-white hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2">
+      <Link
+        to="/"
+        className="mt-8 inline-block rounded-full bg-indigo-600 px-6 py-3 font-medium text-white hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+      >
         Back to WriteSpace
       </Link>
     </main>
@@ -32,45 +35,80 @@ function NotFound() {
 export default function App() {
   const location = useLocation();
   const [session, setCurrentSession] = useState(getSession);
-  useEffect(() => { setCurrentSession(getSession()); }, [location]);
+  useEffect(() => {
+    setCurrentSession(getSession());
+    const titles = {
+      '/': 'Your writing space', '/login': 'Log in', '/register': 'Create an account',
+      '/blogs': 'Blogs', '/write': 'Write a post', '/admin': 'Admin dashboard', '/users': 'User management',
+    };
+    const title = titles[location.pathname]
+      || (location.pathname.startsWith('/blog/') ? 'Read a post'
+        : location.pathname.startsWith('/edit/') ? 'Edit a post' : 'Page not found');
+    document.title = `${title} | WriteSpace`;
+  }, [location]);
 
   return (
     <div className="min-h-[100dvh] bg-slate-50 font-sans text-slate-800">
-      {session ? <Navbar session={session} onLogout={() => setCurrentSession(null)} /> : <PublicNavbar session={session} />}
+      {session ? (
+        <Navbar
+          session={session}
+          onLogout={() => setCurrentSession(null)}
+        />
+      ) : (
+        <PublicNavbar session={session} />
+      )}
       <Routes>
         <Route path="/" element={<LandingPage key={location.key} session={session} />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
-        <Route path="/blogs" element={
-          <ProtectedRoute>
-            <Home />
-          </ProtectedRoute>
-        } />
-        <Route path="/blog/:id" element={
-          <ProtectedRoute>
-            <ReadBlog />
-          </ProtectedRoute>
-        } />
-        <Route path="/write" element={
-          <ProtectedRoute>
-            <WriteBlog />
-          </ProtectedRoute>
-        } />
-        <Route path="/edit/:id" element={
-          <ProtectedRoute>
-            <WriteBlog />
-          </ProtectedRoute>
-        } />
-        <Route path="/admin" element={
-          <ProtectedRoute adminOnly>
-            <AdminDashboard />
-          </ProtectedRoute>
-        } />
-        <Route path="/users" element={
-          <ProtectedRoute adminOnly>
-            <UserManagement />
-          </ProtectedRoute>
-        } />
+        <Route
+          path="/blogs"
+          element={
+            <ProtectedRoute>
+              <Home />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/blog/:id"
+          element={
+            <ProtectedRoute>
+              <ReadBlog />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/write"
+          element={
+            <ProtectedRoute>
+              <WriteBlog />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/edit/:id"
+          element={
+            <ProtectedRoute>
+              <WriteBlog />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute adminOnly>
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/users"
+          element={
+            <ProtectedRoute adminOnly>
+              <UserManagement />
+            </ProtectedRoute>
+          }
+        />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </div>

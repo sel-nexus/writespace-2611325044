@@ -1,7 +1,7 @@
 /** Verify exact account entry, restoration, failure feedback, and shell wiring. */
 import { StrictMode } from 'react';
 import { it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import LoginPage from './LoginPage.jsx';
@@ -197,7 +197,7 @@ it('keeps render and rerender pure and refreshes errors on resubmit', async () =
   expect(screen.queryByRole('alert')).not.toBeInTheDocument();
 });
 
-it('wires public login, session navbar, unfinished destination, and logout at root', async () => {
+it('wires public login, the admin dashboard and role shell, and logout at root', async () => {
   const user = userEvent.setup();
   render(
     <StrictMode>
@@ -209,12 +209,19 @@ it('wires public login, session navbar, unfinished destination, and logout at ro
   expect(screen.getByRole('navigation', { name: 'Public navigation' })).toBeInTheDocument();
   await user.click(screen.getByRole('link', { name: 'Login' }));
   await login(user, 'admin', 'admin');
-  expect(screen.getByRole('heading', { name: 'Page not found' })).toBeInTheDocument();
-  expect(screen.getByRole('navigation', { name: 'Account navigation' })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Admin dashboard' })).toBeInTheDocument();
+  const navigation = screen.getByRole('navigation', { name: 'Account navigation' });
+  expect(navigation).toBeInTheDocument();
+  expect(within(navigation).getByRole('link', { name: 'Dashboard' })).toHaveAttribute('aria-current', 'page');
+  expect(within(navigation).getByRole('link', { name: 'Users' })).toHaveAttribute('href', '/users');
+  expect(within(navigation).getByRole('link', { name: 'Write' })).toHaveAttribute('href', '/write');
+  expect(getSession()).toEqual({ userId: 'admin', username: 'admin', displayName: 'Admin', role: 'admin' });
   await user.click(screen.getByRole('link', { name: 'WriteSpace' }));
   await user.click(screen.getByRole('button', { name: 'Admin account' }));
   await user.click(screen.getByRole('button', { name: 'Logout' }));
   expect(getSession()).toBeNull();
+  expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Your thoughts. Your space. Beautifully simple.');
+  expect(screen.queryByRole('navigation', { name: 'Account navigation' })).not.toBeInTheDocument();
   expect(screen.getByRole('navigation', { name: 'Public navigation' })).toBeInTheDocument();
   expect(screen.getByRole('link', { name: 'Login' })).toBeInTheDocument();
 });

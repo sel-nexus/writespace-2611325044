@@ -26,21 +26,34 @@ export function BlogCard({ post, session = null, onEdit, index = 0 }) {
     <article className={`flex min-w-0 flex-col rounded-2xl border border-slate-200 border-t-4 bg-white p-6 ${borders[index % borders.length]}`}>
       <h2 className="break-words font-display text-2xl font-bold">{post.title}</h2>
       <p className="mt-3 break-words leading-relaxed text-slate-600">
-        {post.content.slice(0, 120)}{post.content.length > 120 ? '…' : ''}
+        {post.content.slice(0, 120)}
+        {post.content.length > 120 ? '…' : ''}
       </p>
       <div className="mt-5 flex items-center gap-3">
         <Avatar role={authorRole} />
         <div className="min-w-0 text-sm text-slate-500">
-          <p className="break-words">By {post.authorName}</p>
+          <p className="break-words">
+            {'By '}
+            {post.authorName}
+          </p>
           <time dateTime={post.createdAt}>{date}</time>
         </div>
       </div>
       <div className="mt-auto flex flex-wrap gap-3 pt-6">
-        <Link to={`/blog/${encodeURIComponent(post.id)}`} aria-label={`Read ${post.title}`} className={`inline-flex min-h-11 items-center rounded-lg px-4 py-2 font-medium text-indigo-600 hover:bg-indigo-50 motion-safe:transition-colors ${focus}`}>
+        <Link
+          to={`/blog/${encodeURIComponent(post.id)}`}
+          aria-label={`Read ${post.title}`}
+          className={`inline-flex min-h-11 items-center rounded-lg px-4 py-2 font-medium text-indigo-600 hover:bg-indigo-50 motion-safe:transition-colors ${focus}`}
+        >
           Read
         </Link>
         {canEdit && (
-          <Link to={`/edit/${encodeURIComponent(post.id)}`} onClick={() => onEdit?.(post)} aria-label={`Edit ${post.title}`} className={`inline-flex min-h-11 items-center rounded-lg border border-indigo-200 bg-white px-4 py-2 font-medium text-indigo-600 hover:bg-indigo-50 motion-safe:transition-colors ${focus}`}>
+          <Link
+            to={`/edit/${encodeURIComponent(post.id)}`}
+            onClick={() => onEdit?.(post)}
+            aria-label={`Edit ${post.title}`}
+            className={`inline-flex min-h-11 items-center rounded-lg border border-indigo-200 bg-white px-4 py-2 font-medium text-indigo-600 hover:bg-indigo-50 motion-safe:transition-colors ${focus}`}
+          >
             Edit
           </Link>
         )}

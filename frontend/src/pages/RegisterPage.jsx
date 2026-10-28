@@ -140,16 +140,30 @@ export default function RegisterPage() {
           <p className="mt-3 text-slate-600">
             Make space for your thoughts with a browser-local account.
           </p>
-          <form onSubmit={submit} noValidate aria-describedby={errors.form ? 'register-error' : undefined} className="mt-8 space-y-5">
+          <form
+            onSubmit={submit}
+            noValidate
+            aria-describedby={errors.form ? 'register-error' : undefined}
+            className="mt-8 space-y-5"
+          >
             {fields.map((field) => (
-              <RegistrationField key={field.name} {...field} value={values[field.name]} error={errors[field.name]} onChange={change} />
+              <RegistrationField
+                key={field.name}
+                {...field}
+                value={values[field.name]}
+                error={errors[field.name]}
+                onChange={change}
+              />
             ))}
             {errors.form && (
               <p id="register-error" role="alert" className="text-sm text-red-700">
                 {errors.form}
               </p>
             )}
-            <button type="submit" className={`min-h-11 w-full rounded-full bg-indigo-600 px-4 py-3 font-medium text-white shadow-sm transition-colors hover:bg-indigo-700 motion-reduce:transition-none ${focus}`}>
+            <button
+              type="submit"
+              className={`min-h-11 w-full rounded-full bg-indigo-600 px-4 py-3 font-medium text-white shadow-sm transition-colors hover:bg-indigo-700 motion-reduce:transition-none ${focus}`}
+            >
               Create account
             </button>
           </form>

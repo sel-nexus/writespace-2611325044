@@ -40,17 +40,27 @@ export function PublicNavbar({ session = null }) {
         >
           {open ? 'Close menu' : 'Open menu'}
         </button>
-        <div id="public-navigation-links" className={`${open ? 'flex' : 'hidden'} w-full flex-col gap-2 sm:flex sm:w-auto sm:flex-row sm:items-center`}>
+        <div
+          id="public-navigation-links"
+          className={`${open ? 'flex' : 'hidden'} w-full flex-col gap-2 sm:flex sm:w-auto sm:flex-row sm:items-center`}
+        >
           {session && (
             <span className="flex min-w-0 items-center gap-2 px-3 py-2">
-              <span aria-hidden="true" className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${session.role === 'admin' ? 'bg-violet-600' : 'bg-indigo-500'}`}>
+              <span
+                aria-hidden="true"
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${session.role === 'admin' ? 'bg-violet-600' : 'bg-indigo-500'}`}
+              >
                 {session.role === 'admin' ? '👑' : '📚'}
               </span>
               <span className="max-w-48 truncate font-medium">{session.displayName}</span>
             </span>
           )}
           {entries.map(({ label, to, primary }) => (
-            <NavLink key={to} to={to} className={({ isActive }) => `${linkStyle} ${primary || isActive ? 'bg-indigo-600 text-white shadow-sm hover:bg-indigo-700' : 'text-slate-800'}`}>
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) => `${linkStyle} ${primary || isActive ? 'bg-indigo-600 text-white shadow-sm hover:bg-indigo-700' : 'text-slate-800'}`}
+            >
               {label}
             </NavLink>
           ))}

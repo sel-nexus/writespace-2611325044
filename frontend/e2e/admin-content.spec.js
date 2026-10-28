@@ -1,4 +1,4 @@
-/** Specify admin content journeys using only UI setup and persisted outcome reads. */
+/** Specify admin content journeys and fixture-backed initial route boundaries. */
 import { test, expect } from './fixtures.js';
 
 /** Read actual saved posts for assertions, never seed or replace browser state. */
@@ -41,6 +41,37 @@ test('guest admin entry redirects to login without controls or persistence', asy
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Welcome back');
   await expect(page.getByRole('link', { name: 'Manage users', exact: true })).toHaveCount(0);
   expect(await posts(page)).toEqual([]);
+});
+
+test('normal-user initial admin entry redirects to blogs without admin content or storage changes', async ({ page }) => {
+  const user = {
+    id: 'writer', displayName: 'Writer', username: 'writer', password: 'demo-only',
+    role: 'user', createdAt: '2025-01-01T00:00:00.000Z',
+  };
+  const storage = {
+    writespace_users: JSON.stringify([user]),
+    writespace_posts: JSON.stringify([{
+      id: 'saved-post', title: 'Saved writing', content: 'Keep this body.',
+      authorId: user.id, authorName: user.displayName, createdAt: user.createdAt,
+    }]),
+    writespace_session: JSON.stringify({
+      userId: user.id, username: user.username, displayName: user.displayName, role: user.role,
+    }),
+    unrelated: 'keep this value',
+  };
+  await page.addInitScript((entries) => {
+    for (const [key, value] of Object.entries(entries)) localStorage.setItem(key, value);
+  }, storage);
+  await page.goto('/admin');
+  await expect(page).toHaveURL(/\/blogs$/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Blogs');
+  await expect(page.getByRole('heading', { name: 'Saved writing', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Writer account', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Admin dashboard', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('navigation', { name: 'Dashboard actions' })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Recent posts', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /^Delete / })).toHaveCount(0);
+  expect(await page.evaluate(() => Object.fromEntries(Object.entries(localStorage)))).toEqual(storage);
 });
 
 test('admin login permits any-post edit and confirmed dashboard deletion while retaining unrelated posts', async ({ page }) => {
@@ -101,6 +132,6 @@ test('admin login permits any-post edit and confirmed dashboard deletion while r
   await expect(page.getByRole('link', { name: 'Dashboard', exact: true })).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Manage users', exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Delete Keep this post', exact: true })).toHaveCount(0);
-  // Login routes the normal user to blogs; admin entry was rejected by the route unit matrix.
+  // Retain the normal user's successful login and role-specific controls journey.
   expect(await posts(page)).toEqual([retained]);
 });

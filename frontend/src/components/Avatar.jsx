@@ -9,7 +9,10 @@ import PropTypes from 'prop-types';
  */
 export function getAvatar(role) {
   return (
-    <span aria-hidden="true" className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${role === 'admin' ? 'bg-violet-600' : 'bg-indigo-500'}`}>
+    <span
+      aria-hidden="true"
+      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${role === 'admin' ? 'bg-violet-600' : 'bg-indigo-500'}`}
+    >
       {role === 'admin' ? '👑' : '📚'}
     </span>
   );

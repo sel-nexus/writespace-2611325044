@@ -1,6 +1,7 @@
 /** Present authenticated role navigation and explicit, guarded logout. */
 import { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
+import { flushSync } from 'react-dom';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { clearSession } from '../utils/auth.js';
 import { Avatar } from './Avatar.jsx';
@@ -35,8 +36,10 @@ export function Navbar({ session, onLogout }) {
       setError('Could not log out. Your session was not removed. Please try again.');
       return;
     }
+    // Commit the public route before clearing shell state so a mounted guard
+    // cannot race this deliberate logout with its guest-to-login redirect.
+    flushSync(() => navigate('/'));
     onLogout?.();
-    navigate('/');
   }
 
   /** Close the account disclosure on Escape and restore its trigger focus. */
@@ -57,28 +60,59 @@ export function Navbar({ session, onLogout }) {
           <img src="/favicon.svg" alt="" width="32" height="32" />
           WriteSpace
         </NavLink>
-        <button type="button" aria-expanded={open} aria-controls="account-navigation-links" onClick={() => setOpen(!open)} className={`min-h-11 rounded-lg border border-slate-200 px-3 font-medium sm:hidden ${focus}`}>
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls="account-navigation-links"
+          onClick={() => setOpen(!open)}
+          className={`min-h-11 rounded-lg border border-slate-200 px-3 font-medium sm:hidden ${focus}`}
+        >
           {open ? 'Close menu' : 'Open menu'}
         </button>
-        <div id="account-navigation-links" className={`${open ? 'flex' : 'hidden'} w-full flex-col gap-2 sm:flex sm:w-auto sm:flex-row sm:items-center`}>
+        <div
+          id="account-navigation-links"
+          className={`${open ? 'flex' : 'hidden'} w-full flex-col gap-2 sm:flex sm:w-auto sm:flex-row sm:items-center`}
+        >
           {entries.map(([label, to]) => (
-            <NavLink key={to} to={to} className={({ isActive }) => `rounded-full px-4 py-2 font-medium ${focus} ${isActive ? 'bg-indigo-600 text-white shadow-sm hover:bg-indigo-700' : 'text-slate-800 hover:bg-indigo-50'}`}>
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) => `rounded-full px-4 py-2 font-medium ${focus} ${isActive ? 'bg-indigo-600 text-white shadow-sm hover:bg-indigo-700' : 'text-slate-800 hover:bg-indigo-50'}`}
+            >
               {label}
             </NavLink>
           ))}
           <div className="relative" onKeyDown={closeAccount}>
-            <button ref={accountTrigger} type="button" aria-expanded={accountOpen} aria-controls="account-dropdown" onClick={() => setAccountOpen(!accountOpen)} className={`flex min-h-11 items-center gap-2 rounded-full px-3 py-2 hover:bg-slate-100 ${focus}`}>
+            <button
+              ref={accountTrigger}
+              type="button"
+              aria-expanded={accountOpen}
+              aria-controls="account-dropdown"
+              onClick={() => setAccountOpen(!accountOpen)}
+              className={`flex min-h-11 items-center gap-2 rounded-full px-3 py-2 hover:bg-slate-100 ${focus}`}
+            >
               <Avatar role={session.role} />
               <span className="max-w-48 truncate font-medium">{session.displayName}</span>
               <span className="sr-only">account</span>
             </button>
             {accountOpen && (
               <div id="account-dropdown" className="mt-2 rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:absolute sm:right-0 sm:min-w-56">
-                <p className="break-words px-3 py-2 text-sm text-slate-500">@{session.username}</p>
-                <button type="button" onClick={logout} className={`min-h-11 w-full rounded-lg px-3 py-2 text-left font-medium text-red-700 hover:bg-red-50 ${focus}`}>
+                <p className="break-words px-3 py-2 text-sm text-slate-500">
+                  @
+                  {session.username}
+                </p>
+                <button
+                  type="button"
+                  onClick={logout}
+                  className={`min-h-11 w-full rounded-lg px-3 py-2 text-left font-medium text-red-700 hover:bg-red-50 ${focus}`}
+                >
                   Logout
                 </button>
-                {error && <p role="alert" className="mt-2 text-sm text-red-700">{error}</p>}
+                {error && (
+                  <p role="alert" className="mt-2 text-sm text-red-700">
+                    {error}
+                  </p>
+                )}
               </div>
             )}
           </div>

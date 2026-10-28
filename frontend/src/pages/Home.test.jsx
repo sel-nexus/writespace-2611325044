@@ -77,17 +77,33 @@ it.each(['/blogs', '/blog/p1'])('redirects guests at %s without exposing saved c
   expect(screen.getByRole('heading', { name: 'Welcome back' })).toBeInTheDocument();
   expect(screen.queryByRole('heading', { name: 'Oldest' })).not.toBeInTheDocument();
 });
-it('follows the list Read link into the guarded reader and preserves shell notice and other routes', async () => {
+it('follows Read and Write links to real pages without persisting an unsaved draft', async () => {
   savePosts([post]);
   setSession(session);
+  const rawStorage = { ...localStorage };
+  const write = vi.spyOn(Storage.prototype, 'setItem');
+  const remove = vi.spyOn(Storage.prototype, 'removeItem');
+  const user = userEvent.setup();
   mount(<App />);
   expect(screen.getByText(/Demo only: passwords are stored/)).toBeInTheDocument();
-  await userEvent.setup().click(screen.getByRole('link', { name: 'Read Oldest' }));
+  await user.click(screen.getByRole('link', { name: 'Read Oldest' }));
   expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Oldest');
-  await userEvent.setup().click(screen.getByRole('link', { name: 'Back to blogs' }));
+  await user.click(screen.getByRole('link', { name: 'Back to blogs' }));
   expect(screen.getByRole('heading', { name: 'Blogs' })).toBeInTheDocument();
-  await userEvent.setup().click(screen.getByRole('link', { name: 'Write a post' }));
-  expect(screen.getByRole('heading', { name: 'Page not found' })).toBeInTheDocument();
+  await user.click(screen.getByRole('link', { name: 'Write a post' }));
+  expect(screen.getByRole('heading', { name: 'Write a post' })).toBeInTheDocument();
+  expect(screen.getByLabelText('Title')).toHaveValue('');
+  expect(screen.getByLabelText('Content')).toHaveValue('');
+  expect(screen.getByRole('button', { name: 'Save post' })).toHaveAttribute('type', 'submit');
+  expect({ ...localStorage }).toEqual(rawStorage);
+  await user.type(screen.getByLabelText('Title'), 'Unsaved idea');
+  await user.type(screen.getByLabelText('Content'), 'Draft words stay in the form.');
+  expect(screen.getByLabelText('Title')).toHaveValue('Unsaved idea');
+  expect(screen.getByLabelText('Content')).toHaveValue('Draft words stay in the form.');
+  expect({ ...localStorage }).toEqual(rawStorage);
+  expect(getPosts()).toEqual([post]);
+  expect(write).not.toHaveBeenCalled();
+  expect(remove).not.toHaveBeenCalled();
 });
 it('does not write or remove data on StrictMode mount and rerender', () => {
   savePosts([post]);

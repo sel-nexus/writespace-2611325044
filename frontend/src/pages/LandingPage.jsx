@@ -24,16 +24,29 @@ export default function LandingPage({ session = null }) {
   return (
     <>
       <main id="main-content" tabIndex={-1}>
-        <section aria-labelledby="hero-title" className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-4 py-16 sm:px-6 md:grid-cols-2 md:py-20">
+        <section
+          aria-labelledby="hero-title"
+          className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-4 py-16 sm:px-6 md:grid-cols-2 md:py-20"
+        >
           <div>
             <p className="mb-5 text-sm font-semibold uppercase tracking-widest text-indigo-700">A place for your words</p>
-            <h1 id="hero-title" className="font-display text-hero font-bold text-slate-800">Your thoughts. Your space. Beautifully simple.</h1>
-            <p className="mt-6 max-w-md text-lg leading-relaxed text-slate-600">A browser-local writing demo for collecting ideas, finding stories, and making room for your own.</p>
+            <h1 id="hero-title" className="font-display text-hero font-bold text-slate-800">
+              Your thoughts. Your space. Beautifully simple.
+            </h1>
+            <p className="mt-6 max-w-md text-lg leading-relaxed text-slate-600">
+              A browser-local writing demo for collecting ideas, finding stories, and making room for your own.
+            </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link to="/register" className={`whitespace-nowrap rounded-full bg-indigo-600 px-6 py-3 font-medium text-white shadow-sm hover:bg-indigo-700 motion-safe:transition-colors motion-safe:duration-gentle ${focus}`}>
+              <Link
+                to="/register"
+                className={`whitespace-nowrap rounded-full bg-indigo-600 px-6 py-3 font-medium text-white shadow-sm hover:bg-indigo-700 motion-safe:transition-colors motion-safe:duration-gentle ${focus}`}
+              >
                 Get Started Free
               </Link>
-              <Link to={session ? '/blogs' : '/login'} className={`whitespace-nowrap rounded-full border border-indigo-200 bg-white px-6 py-3 font-medium text-indigo-700 hover:bg-indigo-50 ${focus}`}>
+              <Link
+                to={session ? '/blogs' : '/login'}
+                className={`whitespace-nowrap rounded-full border border-indigo-200 bg-white px-6 py-3 font-medium text-indigo-700 hover:bg-indigo-50 ${focus}`}
+              >
                 Start Reading
               </Link>
             </div>
@@ -71,15 +84,29 @@ export default function LandingPage({ session = null }) {
           ) : (
             <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {posts.map((post, index) => (
-                <article key={post.id} className={`min-w-0 rounded-2xl border border-slate-200 border-t-4 bg-white p-6 ${borders[index % borders.length]}`}>
+                <article
+                  key={post.id}
+                  className={`min-w-0 rounded-2xl border border-slate-200 border-t-4 bg-white p-6 ${borders[index % borders.length]}`}
+                >
                   <time dateTime={post.createdAt} className="text-sm text-slate-500">
                     {new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric', timeZone: 'UTC' })}
                   </time>
                   <h3 className="mt-3 break-words font-display text-2xl font-bold">
-                    <Link to={`/blog/${encodeURIComponent(post.id)}`} className={`rounded-sm hover:text-indigo-700 ${focus}`}>{post.title}</Link>
+                    <Link
+                      to={`/blog/${encodeURIComponent(post.id)}`}
+                      className={`rounded-sm hover:text-indigo-700 ${focus}`}
+                    >
+                      {post.title}
+                    </Link>
                   </h3>
-                  <p className="mt-3 break-words leading-relaxed text-slate-600">{post.content.slice(0, 120)}{post.content.length > 120 ? '…' : ''}</p>
-                  <p className="mt-5 break-words text-sm text-slate-500">By {post.authorName}</p>
+                  <p className="mt-3 break-words leading-relaxed text-slate-600">
+                    {post.content.slice(0, 120)}
+                    {post.content.length > 120 ? '…' : ''}
+                  </p>
+                  <p className="mt-5 break-words text-sm text-slate-500">
+                    {'By '}
+                    {post.authorName}
+                  </p>
                 </article>
               ))}
             </div>
@@ -90,7 +117,9 @@ export default function LandingPage({ session = null }) {
         <div className="mx-auto max-w-6xl">
           <p className="font-display text-2xl font-bold text-white">WriteSpace</p>
           <p className="mt-3">Your writing lives in this browser. Clearing local storage removes local data.</p>
-          <p className="mt-6 max-w-3xl text-sm leading-relaxed">Demo only: passwords are stored in plain text and access checks run in your browser. Do not use real passwords or sensitive data.</p>
+          <p className="mt-6 max-w-3xl text-sm leading-relaxed">
+            Demo only: passwords are stored in plain text and access checks run in your browser. Do not use real passwords or sensitive data.
+          </p>
         </div>
       </footer>
     </>

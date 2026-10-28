@@ -1,4 +1,4 @@
-/** Specify real UI-created account journeys; read storage only to assert outcomes. */
+/** Specify UI-created accounts and fixture-backed initial route boundaries. */
 import { test, expect } from './fixtures.js';
 
 /** Read actual local collections without seeding or replacing browser data. */
@@ -42,6 +42,83 @@ async function create(page, role = 'user') {
   await page.getByRole('button', { name: 'Create account', exact: true }).click();
   await expect(page.getByRole('status')).toHaveText('Account created for new-writer.');
 }
+
+test('guest initial users entry redirects to login without account content or storage changes', async ({ page }) => {
+  const storage = {
+    writespace_users: JSON.stringify([{
+      id: 'writer', displayName: 'Writer', username: 'writer', password: 'demo-only',
+      role: 'user', createdAt: '2025-01-01T00:00:00.000Z',
+    }]),
+    writespace_posts: JSON.stringify([]),
+    unrelated: 'keep this value',
+  };
+  await page.addInitScript((entries) => {
+    for (const [key, value] of Object.entries(entries)) localStorage.setItem(key, value);
+  }, storage);
+  await page.goto('/users');
+  await expect(page).toHaveURL(/\/login$/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Welcome back');
+  await expect(page.getByRole('heading', { name: 'User management', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'Create a local account' })).toHaveCount(0);
+  await expect(page.getByRole('table')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Create account', exact: true })).toHaveCount(0);
+  expect(await stored(page, 'writespace_session')).toBeNull();
+  expect(await page.evaluate(() => Object.fromEntries(Object.entries(localStorage)))).toEqual(storage);
+});
+
+test('normal-user initial users entry redirects to blogs without account content or storage changes', async ({ page }) => {
+  const user = {
+    id: 'writer', displayName: 'Writer', username: 'writer', password: 'demo-only',
+    role: 'user', createdAt: '2025-01-01T00:00:00.000Z',
+  };
+  const storage = {
+    writespace_users: JSON.stringify([user]),
+    writespace_posts: JSON.stringify([]),
+    writespace_session: JSON.stringify({
+      userId: user.id, username: user.username, displayName: user.displayName, role: user.role,
+    }),
+    unrelated: 'keep this value',
+  };
+  await page.addInitScript((entries) => {
+    for (const [key, value] of Object.entries(entries)) localStorage.setItem(key, value);
+  }, storage);
+  await page.goto('/users');
+  await expect(page).toHaveURL(/\/blogs$/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Blogs');
+  await expect(page.getByRole('button', { name: 'Writer account', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'User management', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'Create a local account' })).toHaveCount(0);
+  await expect(page.getByRole('table')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Create account', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /^Delete / })).toHaveCount(0);
+  expect(await page.evaluate(() => Object.fromEntries(Object.entries(localStorage)))).toEqual(storage);
+});
+
+test('dashboard Manage users opens the real account form and list and returns through account navigation', async ({ page }) => {
+  await page.goto('/');
+  await login(page, 'admin', 'admin');
+  await expect(page).toHaveURL(/\/admin$/);
+  const original = await page.evaluate(() => Object.fromEntries(Object.entries(localStorage)));
+  await page.getByRole('navigation', { name: 'Dashboard actions' })
+    .getByRole('link', { name: 'Manage users', exact: true }).click();
+  await expect(page).toHaveURL(/\/users$/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('User management');
+  const form = page.getByRole('region', { name: 'Create a local account' });
+  await expect(form.getByLabel('Display Name', { exact: true })).toHaveValue('');
+  await expect(form.getByLabel('Username', { exact: true })).toHaveValue('');
+  await expect(form.getByLabel('Password', { exact: true })).toHaveValue('');
+  await expect(form.getByLabel('Role', { exact: true })).toHaveValue('');
+  await expect(form.getByRole('button', { name: 'Create account', exact: true })).toBeVisible();
+  await expect(page.getByRole('table')).toContainText('@admin');
+  await expect(page.getByRole('table')).toContainText('Protected');
+  await expect(page.getByText('No local accounts yet. The built-in admin is always available.', { exact: true })).toBeVisible();
+  await form.getByLabel('Display Name', { exact: true }).fill('Unsaved account');
+  await page.getByRole('navigation', { name: 'Account navigation' })
+    .getByRole('link', { name: 'Dashboard', exact: true }).click();
+  await expect(page).toHaveURL(/\/admin$/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Admin dashboard');
+  expect(await page.evaluate(() => Object.fromEntries(Object.entries(localStorage)))).toEqual(original);
+});
 
 test('admin-created account logs in, authors a post, and is deleted without changing the post', async ({ page }) => {
   await page.goto('/');
