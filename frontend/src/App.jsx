@@ -12,6 +12,7 @@ import Home from './pages/Home.jsx';
 import ReadBlog from './pages/ReadBlog.jsx';
 import WriteBlog from './pages/WriteBlog.jsx';
 import AdminDashboard from './pages/AdminDashboard.jsx';
+import UserManagement from './pages/UserManagement.jsx';
 
 /** Give every unmatched destination a real, accessible route back to discovery. */
 function NotFound() {
@@ -63,6 +64,11 @@ export default function App() {
         <Route path="/admin" element={
           <ProtectedRoute adminOnly>
             <AdminDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/users" element={
+          <ProtectedRoute adminOnly>
+            <UserManagement />
           </ProtectedRoute>
         } />
         <Route path="*" element={<NotFound />} />
