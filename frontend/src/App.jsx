@@ -11,6 +11,7 @@ import { ProtectedRoute } from './components/ProtectedRoute.jsx';
 import Home from './pages/Home.jsx';
 import ReadBlog from './pages/ReadBlog.jsx';
 import WriteBlog from './pages/WriteBlog.jsx';
+import AdminDashboard from './pages/AdminDashboard.jsx';
 
 /** Give every unmatched destination a real, accessible route back to discovery. */
 function NotFound() {
@@ -57,6 +58,11 @@ export default function App() {
         <Route path="/edit/:id" element={
           <ProtectedRoute>
             <WriteBlog />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin" element={
+          <ProtectedRoute adminOnly>
+            <AdminDashboard />
           </ProtectedRoute>
         } />
         <Route path="*" element={<NotFound />} />
