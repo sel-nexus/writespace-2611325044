@@ -40,7 +40,7 @@ it('renders the complete body as text, retains exact whitespace, date and author
   expect(body.textContent).toBe(post.content);
   expect(body).toHaveClass('break-words');
   expect(screen.getByRole('article').querySelector('script, img')).toBeNull();
-  expect(screen.queryByRole('button', { name: /delete/i })).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Delete post' })).toBeInTheDocument();
 });
 it.each(['/blog/missing', '/reader'])('shows exact not-found and a working back link for %s', async (path) => {
   savePosts([post]);
@@ -49,6 +49,7 @@ it.each(['/blog/missing', '/reader'])('shows exact not-found and a working back 
   expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Post not found');
   expect(screen.queryByRole('article')).not.toBeInTheDocument();
   expect(screen.queryByRole('link', { name: 'Edit post' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Delete post' })).not.toBeInTheDocument();
   await userEvent.setup().click(screen.getByRole('link', { name: 'Back to blogs' }));
   expect(screen.getByText('List destination')).toBeInTheDocument();
 });
@@ -57,6 +58,7 @@ it.each([null, { ...session, userId: 'other' }])('does not expose Edit to guests
   if (principal) setSession(principal);
   mount();
   expect(screen.queryByRole('link', { name: 'Edit post' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Delete post' })).not.toBeInTheDocument();
 });
 it.each([session, { ...session, userId: 'extra-admin', role: 'admin' }])('permits an owner or any admin to follow the edit link', async (principal) => {
   savePosts([post]);
@@ -119,3 +121,70 @@ it('does not write or remove persistent data during StrictMode mount and rerende
   expect(remove).not.toHaveBeenCalled();
   expect(localStorage.getItem('writespace_posts')).toBe(raw);
 });
+
+
+it.each([session, { ...session, role: 'admin', userId: 'extra-admin' }])(
+  'confirms owner/admin deletion and removes only the selected fresh identifier', async (principal) => {
+    savePosts([post]);
+    setSession(principal);
+    mount();
+    const added = { ...post, id: 'new-in-another-tab' };
+    savePosts([post, added]);
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Delete post' }));
+    expect(confirm).toHaveBeenCalledWith('Delete this post? This cannot be undone.');
+    expect(screen.getByText('List destination')).toBeInTheDocument();
+    expect(getPosts()).toEqual([added]);
+  },
+);
+
+it('confirmation cancellation keeps the reader and all storage unchanged', async () => {
+  savePosts([post]);
+  setSession(session);
+  mount();
+  vi.spyOn(window, 'confirm').mockReturnValue(false);
+  const write = vi.spyOn(Storage.prototype, 'setItem');
+  await userEvent.setup().click(screen.getByRole('button', { name: 'Delete post' }));
+  expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(post.title);
+  expect(screen.queryByText('List destination')).not.toBeInTheDocument();
+  expect(write).not.toHaveBeenCalled();
+  expect(getPosts()).toEqual([post]);
+});
+
+it('failed deletion stays on reader with actionable feedback and unchanged records', async () => {
+  savePosts([post]);
+  setSession(session);
+  mount();
+  vi.spyOn(window, 'confirm').mockReturnValue(true);
+  vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('quota'); });
+  await userEvent.setup().click(screen.getByRole('button', { name: 'Delete post' }));
+  expect(screen.getByRole('alert')).toHaveTextContent('Could not delete this post. Check browser storage');
+  expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(post.title);
+  expect(screen.queryByText('List destination')).not.toBeInTheDocument();
+  expect(getPosts()).toEqual([post]);
+});
+
+it.each(['guest', 'non-owner', 'ownership', 'missing', 'during-confirm'])(
+  'rechecks fresh %s state for a previously visible delete button and retains failure feedback', async (change) => {
+    savePosts([post]);
+    setSession(session);
+    mount();
+    if (change === 'guest') localStorage.removeItem('writespace_session');
+    if (change === 'non-owner') setSession({ ...session, userId: 'other' });
+    if (change === 'ownership') savePosts([{ ...post, authorId: 'other' }]);
+    if (change === 'missing') savePosts([]);
+    vi.spyOn(window, 'confirm').mockImplementation(() => {
+      if (change === 'during-confirm') localStorage.removeItem('writespace_session');
+      return true;
+    });
+    const raw = localStorage.getItem('writespace_posts');
+    const write = vi.spyOn(Storage.prototype, 'setItem');
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Delete post' }));
+    const message = ['guest', 'during-confirm'].includes(change) ? 'Log in again'
+      : change === 'missing' ? 'Post not found' : 'own posts';
+    expect(screen.getByRole('alert')).toHaveTextContent(message);
+    expect(screen.queryByText('List destination')).not.toBeInTheDocument();
+    expect(write).not.toHaveBeenCalled();
+    expect(localStorage.getItem('writespace_posts')).toBe(raw);
+  },
+);
