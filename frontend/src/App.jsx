@@ -1,9 +1,11 @@
-/** Compose only finished discovery routes and refresh identity on navigation. */
+/** Compose finished public routes and refresh identity on navigation. */
 import { useEffect, useState } from 'react';
 import { Link, Route, Routes, useLocation } from 'react-router-dom';
 import { getSession } from './utils/auth.js';
 import { PublicNavbar } from './components/PublicNavbar.jsx';
+import { Navbar } from './components/Navbar.jsx';
 import LandingPage from './pages/LandingPage.jsx';
+import LoginPage from './pages/LoginPage.jsx';
 
 /** Give every unmatched destination a real, accessible route back to discovery. */
 function NotFound() {
@@ -27,9 +29,10 @@ export default function App() {
 
   return (
     <div className="min-h-[100dvh] bg-slate-50 font-sans text-slate-800">
-      <PublicNavbar session={session} />
+      {session ? <Navbar session={session} onLogout={() => setCurrentSession(null)} /> : <PublicNavbar session={session} />}
       <Routes>
         <Route path="/" element={<LandingPage key={location.key} session={session} />} />
+        <Route path="/login" element={<LoginPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </div>
